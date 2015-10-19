@@ -1,25 +1,28 @@
 import argparse
+import hashlib
 import os
 from os import listdir
 from os.path import basename, isfile, join
 
 
-def find_dup_filename(input_dir, out):
+def find_dup_filename(input_dir, out, key_function):
     file_list = get_file_list(input_dir)
     file_check = {}
 
     for filename in file_list:
-        name = basename(filename)
+        key = key_function(filename)
 
-        if name in file_check:
-            file_check[name].append(filename)
+        if key in file_check:
+            file_check[key].append(filename)
         else:
-            file_check[name] = [filename]
+            file_check[key] = [filename]
 
     for k, v in file_check.items():
         if len(v) > 1:
             out.write("Duplicate file: " + k + "\n")
             out.write(str(v) + "\n\n")
+
+    return file_check
 
 
 def get_file_list(input_dir):
@@ -51,10 +54,9 @@ def main():
     group.add_argument('-f', '--filename', action="store_true", help='Look for duplicates based on the file name. '
                                                                      'Used if nothing else is specified')
     group.add_argument('-s', '--hashcheck', action="store_true",
-                       help='Look for duplicates based on the MD5 hash of the '
-                            'file')
+                       help='Look for duplicates based on the MD5 hash of the file. This method is slow')
     group.add_argument('-c', '--contents', action="store_true", help='Look for duplicates based on the contents of the '
-                                                                     'file')
+                                                                     'file. This method is very slow')
 
     args = parser.parse_args()
 
@@ -69,10 +71,14 @@ def main():
 
     if args.filename:
         file = open(output_file, 'w')
-        find_dup_filename(input_directory, file)
+        find_dup_filename(input_directory, file, lambda x: basename(x))
+        file.close()
+    elif args.hashcheck:
+        file = open(output_file, 'w')
+        find_dup_filename(input_directory, file, lambda x: hashlib.md5(open(x, 'rb').read()).hexdigest())
         file.close()
     else:
-        print("You must select -f")
+        print("You must select a duplicate finding method")
         parser.print_help()
 
 
