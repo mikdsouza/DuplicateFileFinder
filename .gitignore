@@ -58,6 +58,7 @@ target/
 
 # example dir
 example/
+dup.txt
 
 # idea files
 .idea/
